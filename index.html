@@ -22,7 +22,6 @@ body { margin:0; }
 
 <script>
 
-// carte simple
 var map = L.map('map').setView([43.8,6.3],8);
 
 L.tileLayer(
@@ -30,28 +29,39 @@ L.tileLayer(
 ).addTo(map);
 
 
-// lecture CSV
 fetch("https://ycastel.github.io/aires-educatives/donnees.csv")
 
 .then(r => r.text())
 
 .then(function(text){
 
-var lignes = text.split("\n");
+console.log(text); // DEBUG
+
+var lignes = text.split(/\r?\n/);
 
 for(var i=1;i<lignes.length;i++){
 
+if(!lignes[i]) continue;
+
 var cols = lignes[i].split(";");
 
-if(cols.length < 9) continue;
+if(cols.length < 9) {
+console.log("ligne ignorée:", lignes[i]);
+continue;
+}
 
-// IMPORTANT : ton CSV est lon puis lat
-var lon = parseFloat(cols[7].replace(",","."));
-var lat = parseFloat(cols[8].replace(",","."));
+// nettoie valeurs
+var lon = cols[7].trim().replace(",",".").replace('"',"");
+var lat = cols[8].trim().replace(",",".").replace('"',"");
+
+lon = parseFloat(lon);
+lat = parseFloat(lat);
+
+console.log("coord:", lat, lon);
 
 if(isNaN(lat) || isNaN(lon)) continue;
 
-L.marker([lat,lon])
+L.marker([lat, lon])
 .addTo(map)
 .bindPopup(cols[0]);
 
