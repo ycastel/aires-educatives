@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="utf-8"/>
-<title>Aires éducatives — Académie de Nice</title>
+<meta charset="utf-8" />
+<title>Carte des Aires éducatives</title>
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -11,32 +11,26 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"/>
 
 <style>
-body { margin:0; font-family:Segoe UI, Arial; }
-#map { height:100vh; }
-.header {
-    position:absolute;
-    top:15px;
-    left:60px;
-    z-index:1000;
-    background:white;
-    padding:12px 18px;
-    border-radius:12px;
-    box-shadow:0 4px 12px rgba(0,0,0,0.3);
-    font-size:20px;
-    font-weight:bold;
+html, body {
+    margin: 0;
+    padding: 0;
 }
+
+#map {
+    width: 100%;
+    height: 100vh;
+}
+
 .legend {
-    background:white;
-    padding:10px;
-    border-radius:10px;
-    box-shadow:0 4px 12px rgba(0,0,0,0.3);
+    background: white;
+    padding: 10px;
+    line-height: 1.5;
 }
 </style>
-</head>
 
+</head>
 <body>
 
-<div class="header">Académie de Nice — Aires éducatives</div>
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -44,119 +38,71 @@ body { margin:0; font-family:Segoe UI, Arial; }
 
 <script>
 
-// CARTE
-var map = L.map('map').setView([43.8, 6.3], 8);
+// URL de TON CSV
+const CSV_URL = "https://ycastel.github.io/aires-educatives/donnees.csv";
 
-// Satellite par défaut
-var satellite = L.tileLayer(
-'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-{ attribution: '© Esri' }
-).addTo(map);
+// Carte
+const map = L.map('map');
 
-// Relief optionnel
-var relief = L.tileLayer(
+// Fond satellite par défaut
+const satellite = L.tileLayer(
 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-{ attribution: '© OpenTopoMap' }
-);
-
-L.control.layers({
-"Satellite": satellite,
-"Relief": relief
+{
+    attribution: '© OpenTopoMap'
 }).addTo(map);
 
-
-// CLUSTERS
-var ameCluster = L.markerClusterGroup();
-var ateCluster = L.markerClusterGroup();
-
-
-// CSV
-fetch("https://ycastel.github.io/aires-educatives/donnees.csv")
-.then(r => r.text())
-.then(function(text){
-
-var lignes = text.split("\n");
-
-for(var i=1;i<lignes.length;i++){
-
-var cols = lignes[i].split(";");
-
-if(cols.length<9) continue;
-
-var nom = cols[0];
-var adresse = cols[1];
-var cp = cols[2];
-var commune = cols[3];
-var ame = cols[4];
-var ate = cols[5];
-var site = cols[6];
-
-var lat = parseFloat(cols[7].replace(",","."));
-var lon = parseFloat(cols[8].replace(",","."));
-
-if(isNaN(lat)||isNaN(lon)) continue;
-
-var popup =
-"<b>"+nom+"</b><br>"+
-adresse+"<br>"+
-cp+" "+commune+"<br>"+
-(site ? "<a href='"+site+"' target='_blank'>Site web</a>" : "");
-
-if(ame=="1"){
-
-var marker=L.circleMarker([lat,lon],{
-radius:8,
-fillColor:"#007bff",
-color:"white",
-weight:1,
-fillOpacity:0.9
+// Relief
+const relief = L.tileLayer(
+'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+{
+    attribution: '© OpenStreetMap'
 });
 
-marker.bindPopup(popup);
-ameCluster.addLayer(marker);
+// Contrôle des couches
+L.control.layers({
+    "Satellite": satellite,
+    "Relief": relief
+}).addTo(map);
 
-}
+// Cluster
+const markers = L.markerClusterGroup();
+map.addLayer(markers);
 
-if(ate=="1"){
+// Charger CSV
+fetch(CSV_URL)
+.then(response => response.text())
+.then(text => {
 
-var marker=L.circleMarker([lat,lon],{
-radius:8,
-fillColor:"#28a745",
-color:"white",
-weight:1,
-fillOpacity:0.9
+    const lignes = text.split('\n');
+
+    // Ignorer l'en-tête
+    for (let i = 1; i < lignes.length; i++) {
+
+        const cols = lignes[i].split(';');
+
+        const nom = cols[0];
+        const commune = cols[1];
+        const type = cols[2];
+        const lat = parseFloat(cols[3]);
+        const lon = parseFloat(cols[4]);
+
+        if (!isNaN(lat) && !isNaN(lon)) {
+
+            const marker = L.marker([lat, lon]);
+
+            marker.bindPopup(
+                "<b>" + nom + "</b><br>" +
+                commune + "<br>" +
+                type
+            );
+
+            markers.addLayer(marker);
+        }
+    }
+
+    map.fitBounds(markers.getBounds());
+
 });
-
-marker.bindPopup(popup);
-ateCluster.addLayer(marker);
-
-}
-
-}
-
-map.addLayer(ameCluster);
-map.addLayer(ateCluster);
-
-});
-
-
-// LEGENDE
-var legend=L.control({position:"bottomright"});
-
-legend.onAdd=function(){
-
-var div=L.DomUtil.create("div","legend");
-
-div.innerHTML=
-"<b>Légende</b><br>"+
-"<span style='color:#007bff;'>●</span> AME<br>"+
-"<span style='color:#28a745;'>●</span> ATE";
-
-return div;
-
-};
-
-legend.addTo(map);
 
 </script>
 
