@@ -3,25 +3,18 @@
 <head>
 <meta charset="utf-8"/>
 <title>Aires éducatives — Académie de Nice</title>
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"/>
 
 <style>
 body { margin:0; font-family:Segoe UI, Arial; }
 #map { height:100vh; }
 .header {
-    position:absolute; top:15px; left:60px; z-index:1000;
+    position:absolute; top:15px; left:15px; z-index:1000;
     background:white; padding:12px 18px; border-radius:12px;
     box-shadow:0 4px 12px rgba(0,0,0,0.3);
     font-size:20px; font-weight:bold;
-}
-.legend {
-    background:white; padding:10px; border-radius:10px;
-    box-shadow:0 4px 12px rgba(0,0,0,0.3);
 }
 </style>
 </head>
@@ -31,7 +24,6 @@ body { margin:0; font-family:Segoe UI, Arial; }
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
 
 <script>
 // =======================
@@ -39,32 +31,15 @@ body { margin:0; font-family:Segoe UI, Arial; }
 // =======================
 var map = L.map('map').setView([43.8, 6.3], 8);
 
-// Couches Relief et Satellite
-var relief = L.tileLayer(
-    'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-    { attribution: '© OpenTopoMap' }
-).addTo(map);
-
-var satellite = L.tileLayer(
-    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    { attribution: '© Esri' }
-);
-
-L.control.layers({
-    "Relief": relief,
-    "Satellite": satellite
+// Carte OpenStreetMap simple
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution:'© OpenStreetMap'
 }).addTo(map);
-
-// =======================
-// CLUSTERS
-// =======================
-var ameCluster = L.markerClusterGroup();
-var ateCluster = L.markerClusterGroup();
 
 // =======================
 // LECTURE CSV
 // =======================
-fetch("https://ycastel.github.io/carte-aires-educatives/donnees.csv")
+fetch("https://ycastel.github.io/aires-educatives/donnees.csv")
 .then(response => response.text())
 .then(function(text){
     var lignes = text.split("\n");
@@ -79,12 +54,11 @@ fetch("https://ycastel.github.io/carte-aires-educatives/donnees.csv")
         var adresse = cols[1];
         var cp = cols[2];
         var commune = cols[3];
-        var ame = cols[4];
-        var ate = cols[5];
         var site = cols[6];
-        var lat = parseFloat(cols[7].replace(",", "."));
-        var lon = parseFloat(cols[8].replace(",", "."));
 
+        // Les colonnes lon/lat sont les indices 7 et 8
+        var lon = parseFloat(cols[7].replace(",", "."));
+        var lat = parseFloat(cols[8].replace(",", "."));
         if(isNaN(lat) || isNaN(lon)) continue;
 
         var popup =
@@ -93,40 +67,19 @@ fetch("https://ycastel.github.io/carte-aires-educatives/donnees.csv")
             cp+" "+commune+"<br>"+
             (site ? "<a href='"+site+"' target='_blank'>Site web</a>" : "");
 
-        if(ame === "1"){
-            var marker = L.circleMarker([lat, lon], {
-                radius:8, fillColor:"#007bff", color:"white", weight:1, fillOpacity:0.9
-            });
-            marker.bindPopup(popup);
-            ameCluster.addLayer(marker);
-        }
+        var marker = L.circleMarker([lat, lon], {
+            radius:6,
+            fillColor:"#007bff",
+            color:"white",
+            weight:1,
+            fillOpacity:0.9
+        });
 
-        if(ate === "1"){
-            var marker = L.circleMarker([lat, lon], {
-                radius:8, fillColor:"#28a745", color:"white", weight:1, fillOpacity:0.9
-            });
-            marker.bindPopup(popup);
-            ateCluster.addLayer(marker);
-        }
+        marker.bindPopup(popup);
+        marker.addTo(map);
     }
-
-    map.addLayer(ameCluster);
-    map.addLayer(ateCluster);
 });
-
-// =======================
-// LEGENDE
-// =======================
-var legend = L.control({position:"bottomright"});
-legend.onAdd = function(){
-    var div = L.DomUtil.create("div","legend");
-    div.innerHTML = "<b>Légende</b><br>"+
-                    "<span style='color:#007bff;'>●</span> AME<br>"+
-                    "<span style='color:#28a745;'>●</span> ATE";
-    return div;
-};
-legend.addTo(map);
-
 </script>
+
 </body>
 </html>
