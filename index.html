@@ -1,34 +1,20 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="utf-8" />
-<title>Carte des Aires éducatives</title>
+<meta charset="utf-8"/>
+<title>Aires éducatives</title>
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"/>
 
 <style>
-html, body {
-    margin: 0;
-    padding: 0;
-}
-
-#map {
-    width: 100%;
-    height: 100vh;
-}
-
-.legend {
-    background: white;
-    padding: 10px;
-    line-height: 1.5;
-}
+body { margin:0; font-family:Arial; }
+#map { height:100vh; }
 </style>
-
 </head>
+
 <body>
 
 <div id="map"></div>
@@ -38,69 +24,76 @@ html, body {
 
 <script>
 
-// URL de TON CSV
-const CSV_URL = "https://ycastel.github.io/aires-educatives/donnees.csv";
+// carte satellite par défaut
+var satellite = L.tileLayer(
+'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+{ attribution:'© Esri' });
 
-// Carte
-const map = L.map('map');
-
-// Fond satellite par défaut
-const satellite = L.tileLayer(
+var relief = L.tileLayer(
 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-{
-    attribution: '© OpenTopoMap'
-}).addTo(map);
+{ attribution:'© OpenTopoMap' });
 
-// Relief
-const relief = L.tileLayer(
-'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-{
-    attribution: '© OpenStreetMap'
+var map = L.map('map',{
+center:[43.8,6.3],
+zoom:8,
+layers:[satellite]
 });
 
-// Contrôle des couches
 L.control.layers({
-    "Satellite": satellite,
-    "Relief": relief
+"Satellite": satellite,
+"Relief": relief
 }).addTo(map);
 
-// Cluster
-const markers = L.markerClusterGroup();
-map.addLayer(markers);
 
-// Charger CSV
-fetch(CSV_URL)
+// cluster
+var cluster = L.markerClusterGroup();
+
+fetch("https://ycastel.github.io/aires-educatives/donnees.csv")
+
 .then(response => response.text())
-.then(text => {
 
-    const lignes = text.split('\n');
+.then(function(text){
 
-    // Ignorer l'en-tête
-    for (let i = 1; i < lignes.length; i++) {
+var lignes = text.split("\n");
 
-        const cols = lignes[i].split(';');
+for(var i=1; i<lignes.length; i++){
 
-        const nom = cols[0];
-        const commune = cols[1];
-        const type = cols[2];
-        const lat = parseFloat(cols[3]);
-        const lon = parseFloat(cols[4]);
+if(!lignes[i]) continue;
 
-        if (!isNaN(lat) && !isNaN(lon)) {
+var cols = lignes[i].split(";");
 
-            const marker = L.marker([lat, lon]);
+var nom = cols[0];
+var adresse = cols[1];
+var cp = cols[2];
+var commune = cols[3];
+var site = cols[6];
 
-            marker.bindPopup(
-                "<b>" + nom + "</b><br>" +
-                commune + "<br>" +
-                type
-            );
+// IMPORTANT : ordre correct selon ton CSV
+var lon = parseFloat(cols[7].replace(",", "."));
+var lat = parseFloat(cols[8].replace(",", "."));
 
-            markers.addLayer(marker);
-        }
-    }
+if(isNaN(lat) || isNaN(lon)) continue;
 
-    map.fitBounds(markers.getBounds());
+var marker = L.circleMarker([lat, lon],{
+radius:8,
+fillColor:"#007bff",
+color:"white",
+weight:1,
+fillOpacity:0.9
+});
+
+marker.bindPopup(
+"<b>"+nom+"</b><br>"+
+adresse+"<br>"+
+cp+" "+commune+"<br>"+
+(site ? "<a href='"+site+"' target='_blank'>Site web</a>" : "")
+);
+
+cluster.addLayer(marker);
+
+}
+
+map.addLayer(cluster);
 
 });
 
