@@ -2,9 +2,10 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8"/>
-<title>Aires éducatives</title>
+<title>Aires éducatives — Académie de Nice</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<!-- Leaflet CSS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"/>
@@ -14,16 +15,20 @@ body { margin:0; }
 #map { height:100vh; }
 </style>
 </head>
-
 <body>
+
 <div id="map"></div>
 
+<!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
 
 <script>
+// =======================
+// INITIALISATION CARTE
+// =======================
 
-// Carte satellite par défaut
+// Couches
 var satellite = L.tileLayer(
   'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
   { attribution:'© Esri' }
@@ -34,12 +39,14 @@ var relief = L.tileLayer(
   { attribution:'© OpenTopoMap' }
 );
 
+// Carte satellite par défaut
 var map = L.map('map', {
-  center:[43.8,6.3],
-  zoom:8,
-  layers:[satellite] // satellite par défaut
+  center: [43.8, 6.3],
+  zoom: 8,
+  layers: [satellite]
 });
 
+// Switch entre Satellite et Relief
 L.control.layers({
   "Satellite": satellite,
   "Relief": relief
@@ -48,12 +55,13 @@ L.control.layers({
 // Cluster
 var cluster = L.markerClusterGroup();
 
-// Lecture CSV
+// =======================
+// LECTURE CSV
+// =======================
 fetch("https://ycastel.github.io/aires-educatives/donnees.csv")
 .then(r => r.text())
 .then(function(text){
   var lignes = text.split(/\r?\n/);
-
   for(var i=1; i<lignes.length; i++){
     if(!lignes[i]) continue;
 
@@ -72,15 +80,15 @@ fetch("https://ycastel.github.io/aires-educatives/donnees.csv")
 
     if(isNaN(lat) || isNaN(lon)) continue;
 
-    var color = "#007bff"; // bleu par défaut AME
-    if(ate === "1" && ame !== "1") color = "#28a745"; // vert si uniquement ATE
+    // couleur selon AME/ATE
+    var color = (ame === "1") ? "#007bff" : "#28a745";
 
     var marker = L.circleMarker([lat, lon], {
-      radius:8,
+      radius: 8,
       fillColor: color,
-      color:"white",
-      weight:1,
-      fillOpacity:0.9
+      color: "white",
+      weight: 1,
+      fillOpacity: 0.9
     });
 
     marker.bindPopup(
@@ -95,12 +103,12 @@ fetch("https://ycastel.github.io/aires-educatives/donnees.csv")
 
   map.addLayer(cluster);
 
-  // Zoom sur tous les points
+  // Zoom pour inclure tous les points
   if(cluster.getLayers().length > 0){
     map.fitBounds(cluster.getBounds());
   }
-
 });
 </script>
+
 </body>
 </html>
