@@ -7,10 +7,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
 
 <style>
-body { margin:0; font-family:Arial; }
+body { margin:0; }
 #map { height:100vh; }
 </style>
 </head>
@@ -20,34 +19,21 @@ body { margin:0; font-family:Arial; }
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
 
 <script>
 
-var satellite = L.tileLayer(
-'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-);
+// carte simple
+var map = L.map('map').setView([43.8,6.3],8);
 
-var relief = L.tileLayer(
-'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png'
-);
+L.tileLayer(
+'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+).addTo(map);
 
-var map = L.map('map',{
-center:[43.8,6.3],
-zoom:8,
-layers:[satellite]
-});
 
-L.control.layers({
-"Satellite": satellite,
-"Relief": relief
-}).addTo(map);
-
-var cluster = L.markerClusterGroup();
-
+// lecture CSV
 fetch("https://ycastel.github.io/aires-educatives/donnees.csv")
 
-.then(response => response.text())
+.then(r => r.text())
 
 .then(function(text){
 
@@ -57,39 +43,19 @@ for(var i=1;i<lignes.length;i++){
 
 var cols = lignes[i].split(";");
 
-if(cols.length<9) continue;
+if(cols.length < 9) continue;
 
-var nom = cols[0];
-var adresse = cols[1];
-var cp = cols[2];
-var commune = cols[3];
-var site = cols[6];
+// IMPORTANT : ton CSV est lon puis lat
+var lon = parseFloat(cols[7].replace(",","."));
+var lat = parseFloat(cols[8].replace(",","."));
 
-var lon = parseFloat(cols[7].replace(",", "."));
-var lat = parseFloat(cols[8].replace(",", "."));
+if(isNaN(lat) || isNaN(lon)) continue;
 
-if(isNaN(lat)||isNaN(lon)) continue;
-
-var marker = L.circleMarker([lat, lon],{
-radius:8,
-fillColor:"#007bff",
-color:"white",
-weight:1,
-fillOpacity:0.9
-});
-
-marker.bindPopup(
-"<b>"+nom+"</b><br>"+
-adresse+"<br>"+
-cp+" "+commune+"<br>"+
-(site ? "<a href='"+site+"' target='_blank'>Site web</a>" : "")
-);
-
-cluster.addLayer(marker);
+L.marker([lat,lon])
+.addTo(map)
+.bindPopup(cols[0]);
 
 }
-
-map.addLayer(cluster);
 
 });
 
