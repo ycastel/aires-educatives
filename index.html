@@ -5,108 +5,72 @@
 <title>Aires éducatives — Académie de Nice</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- Leaflet CSS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"/>
 
 <style>
-body { margin:0; }
+body { margin:0; font-family:Segoe UI, Arial; }
 #map { height:100vh; }
 </style>
 </head>
-<body>
 
+<body>
 <div id="map"></div>
 
-<!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
 
 <script>
 // =======================
 // INITIALISATION CARTE
 // =======================
+var map = L.map('map').setView([43.8, 6.3], 8);
 
-// Couches
-var satellite = L.tileLayer(
-  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-  { attribution:'© Esri' }
-);
-
-var relief = L.tileLayer(
-  'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-  { attribution:'© OpenTopoMap' }
-);
-
-// Carte satellite par défaut
-var map = L.map('map', {
-  center: [43.8, 6.3],
-  zoom: 8,
-  layers: [satellite]
-});
-
-// Switch entre Satellite et Relief
-L.control.layers({
-  "Satellite": satellite,
-  "Relief": relief
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution:'© OpenStreetMap'
 }).addTo(map);
-
-// Cluster
-var cluster = L.markerClusterGroup();
 
 // =======================
 // LECTURE CSV
 // =======================
 fetch("https://ycastel.github.io/aires-educatives/donnees.csv")
-.then(r => r.text())
+.then(response => response.text())
 .then(function(text){
-  var lignes = text.split(/\r?\n/);
-  for(var i=1; i<lignes.length; i++){
-    if(!lignes[i]) continue;
+    var lignes = text.split("\n");
 
-    var cols = lignes[i].split(";");
-    if(cols.length < 9) continue;
+    for(var i=1; i<lignes.length; i++){
+        if(!lignes[i]) continue;
 
-    var nom = cols[0];
-    var adresse = cols[1];
-    var cp = cols[2];
-    var commune = cols[3];
-    var ame = cols[4];
-    var ate = cols[5];
-    var site = cols[6];
-    var lon = parseFloat(cols[7]);
-    var lat = parseFloat(cols[8]);
+        var cols = lignes[i].split(";");
+        if(cols.length < 9) continue;
 
-    if(isNaN(lat) || isNaN(lon)) continue;
+        var nom = cols[0];
+        var adresse = cols[1];
+        var cp = cols[2];
+        var commune = cols[3];
+        var ame = cols[4];
+        var ate = cols[5];
+        var site = cols[6];
+        var lon = parseFloat(cols[7].replace(",", "."));
+        var lat = parseFloat(cols[8].replace(",", "."));
 
-    // couleur selon AME/ATE
-    var color = (ame === "1") ? "#007bff" : "#28a745";
+        if(isNaN(lat) || isNaN(lon)) continue;
 
-    var marker = L.circleMarker([lat, lon], {
-      radius: 8,
-      fillColor: color,
-      color: "white",
-      weight: 1,
-      fillOpacity: 0.9
-    });
+        var popup =
+            "<b>"+nom+"</b><br>"+
+            adresse+"<br>"+
+            cp+" "+commune+"<br>"+
+            (site ? "<a href='"+site+"' target='_blank'>Site web</a>" : "");
 
-    marker.bindPopup(
-      "<b>"+nom+"</b><br>"+
-      adresse+"<br>"+
-      cp+" "+commune+"<br>"+
-      (site ? "<a href='"+site+"' target='_blank'>Site web</a>" : "")
-    );
+        var marker = L.circleMarker([lat, lon], {
+            radius:6,
+            fillColor:"#007bff",
+            color:"white",
+            weight:1,
+            fillOpacity:0.9
+        });
 
-    cluster.addLayer(marker);
-  }
-
-  map.addLayer(cluster);
-
-  // Zoom pour inclure tous les points
-  if(cluster.getLayers().length > 0){
-    map.fitBounds(cluster.getBounds());
-  }
+        marker.bindPopup(popup);
+        marker.addTo(map);
+    }
 });
 </script>
 
