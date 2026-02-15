@@ -24,14 +24,13 @@ body { margin:0; font-family:Arial; }
 
 <script>
 
-// carte satellite par défaut
 var satellite = L.tileLayer(
-'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-{ attribution:'© Esri' });
+'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+);
 
 var relief = L.tileLayer(
-'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-{ attribution:'© OpenTopoMap' });
+'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png'
+);
 
 var map = L.map('map',{
 center:[43.8,6.3],
@@ -44,8 +43,6 @@ L.control.layers({
 "Relief": relief
 }).addTo(map);
 
-
-// cluster
 var cluster = L.markerClusterGroup();
 
 fetch("https://ycastel.github.io/aires-educatives/donnees.csv")
@@ -56,11 +53,11 @@ fetch("https://ycastel.github.io/aires-educatives/donnees.csv")
 
 var lignes = text.split("\n");
 
-for(var i=1; i<lignes.length; i++){
-
-if(!lignes[i]) continue;
+for(var i=1;i<lignes.length;i++){
 
 var cols = lignes[i].split(";");
+
+if(cols.length<9) continue;
 
 var nom = cols[0];
 var adresse = cols[1];
@@ -68,11 +65,10 @@ var cp = cols[2];
 var commune = cols[3];
 var site = cols[6];
 
-// IMPORTANT : ordre correct selon ton CSV
 var lon = parseFloat(cols[7].replace(",", "."));
 var lat = parseFloat(cols[8].replace(",", "."));
 
-if(isNaN(lat) || isNaN(lon)) continue;
+if(isNaN(lat)||isNaN(lon)) continue;
 
 var marker = L.circleMarker([lat, lon],{
 radius:8,
