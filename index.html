@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8"/>
 <title>Aires éducatives</title>
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"/>
 
 <style>
 body { margin:0; }
@@ -15,61 +16,91 @@ body { margin:0; }
 </head>
 
 <body>
-
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
 
 <script>
 
-var map = L.map('map').setView([43.8,6.3],8);
+// Carte satellite par défaut
+var satellite = L.tileLayer(
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  { attribution:'© Esri' }
+);
 
-L.tileLayer(
-'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-).addTo(map);
+var relief = L.tileLayer(
+  'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+  { attribution:'© OpenTopoMap' }
+);
 
-
-fetch("https://ycastel.github.io/aires-educatives/donnees.csv")
-
-.then(r => r.text())
-
-.then(function(text){
-
-console.log(text); // DEBUG
-
-var lignes = text.split(/\r?\n/);
-
-for(var i=1;i<lignes.length;i++){
-
-if(!lignes[i]) continue;
-
-var cols = lignes[i].split(";");
-
-if(cols.length < 9) {
-console.log("ligne ignorée:", lignes[i]);
-continue;
-}
-
-// nettoie valeurs
-var lon = cols[7].trim().replace(",",".").replace('"',"");
-var lat = cols[8].trim().replace(",",".").replace('"',"");
-
-lon = parseFloat(lon);
-lat = parseFloat(lat);
-
-console.log("coord:", lat, lon);
-
-if(isNaN(lat) || isNaN(lon)) continue;
-
-L.marker([lat, lon])
-.addTo(map)
-.bindPopup(cols[0]);
-
-}
-
+var map = L.map('map', {
+  center:[43.8,6.3],
+  zoom:8,
+  layers:[satellite] // satellite par défaut
 });
 
-</script>
+L.control.layers({
+  "Satellite": satellite,
+  "Relief": relief
+}).addTo(map);
 
+// Cluster
+var cluster = L.markerClusterGroup();
+
+// Lecture CSV
+fetch("https://ycastel.github.io/aires-educatives/donnees.csv")
+.then(r => r.text())
+.then(function(text){
+  var lignes = text.split(/\r?\n/);
+
+  for(var i=1; i<lignes.length; i++){
+    if(!lignes[i]) continue;
+
+    var cols = lignes[i].split(";");
+    if(cols.length < 9) continue;
+
+    var nom = cols[0];
+    var adresse = cols[1];
+    var cp = cols[2];
+    var commune = cols[3];
+    var ame = cols[4];
+    var ate = cols[5];
+    var site = cols[6];
+    var lon = parseFloat(cols[7]);
+    var lat = parseFloat(cols[8]);
+
+    if(isNaN(lat) || isNaN(lon)) continue;
+
+    var color = "#007bff"; // bleu par défaut AME
+    if(ate === "1" && ame !== "1") color = "#28a745"; // vert si uniquement ATE
+
+    var marker = L.circleMarker([lat, lon], {
+      radius:8,
+      fillColor: color,
+      color:"white",
+      weight:1,
+      fillOpacity:0.9
+    });
+
+    marker.bindPopup(
+      "<b>"+nom+"</b><br>"+
+      adresse+"<br>"+
+      cp+" "+commune+"<br>"+
+      (site ? "<a href='"+site+"' target='_blank'>Site web</a>" : "")
+    );
+
+    cluster.addLayer(marker);
+  }
+
+  map.addLayer(cluster);
+
+  // Zoom sur tous les points
+  if(cluster.getLayers().length > 0){
+    map.fitBounds(cluster.getBounds());
+  }
+
+});
+</script>
 </body>
 </html>
